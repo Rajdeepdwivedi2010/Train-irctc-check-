@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Rajdeep">
+<meta name="description" content="Check PNR status and running status for Indian Railways trains. Designed and built by Rajdeep.">
+<title>RailCheck India: PNR and running status</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eceff2;--panel:#fff;--ink:#101418;--muted:#55616f;--line:#d5dbe1;--blue:#1f4e9c;--on-blue:#fff;--ok:#17803a;--err:#c62828;--sign:#f6c400;--sign-ink:#101418}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1217;--panel:#161c24;--ink:#e8ecf1;--muted:#98a4b3;--line:#2a323d;--blue:#7aa7ff;--on-blue:#0e1217;--ok:#4cc46a;--err:#ff8a8a}}
+:root[data-theme="dark"]{--bg:#0e1217;--panel:#161c24;--ink:#e8ecf1;--muted:#98a4b3;--line:#2a323d;--blue:#7aa7ff;--on-blue:#0e1217;--ok:#4cc46a;--err:#ff8a8a}
+:root{--cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1rem/1.6 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:62rem;margin:0 auto;padding:0 1.25rem}
+.flag{height:5px;background:linear-gradient(90deg,#ff9933 33.3%,#fff 33.3% 66.6%,#138808 66.6%)}
+.board{background:var(--sign);color:var(--sign-ink);border-bottom:6px solid var(--sign-ink);padding-bottom:5.5rem}
+.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem 0;font:700 1.5rem/1 var(--cond)}
+.only{font-size:1.05rem;border:2px solid var(--sign-ink);padding:.15rem .6rem;border-radius:.2rem;white-space:nowrap}
+h1{font:800 clamp(2.7rem,9vw,5.2rem)/.95 var(--cond);margin:2rem 0 1rem;max-width:16ch;text-wrap:balance}
+.lead{max-width:36rem;font-size:1.2rem;font-weight:500;margin:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:.5rem;max-width:34rem;margin-top:-3.5rem;position:relative}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;font:700 1.25rem var(--cond);padding:.9rem .5rem;background:none;border:0;border-bottom:4px solid transparent;margin-bottom:-1px;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--blue)}
+form{padding:1.25rem}
+label{display:block;font-weight:600;margin-bottom:.4rem}
+input{width:100%;font:600 2rem/1.1 var(--cond);letter-spacing:.14em;font-variant-numeric:tabular-nums;padding:.6rem .9rem;border:2px solid var(--ink);border-radius:.3rem;background:var(--bg);color:var(--ink)}
+input::placeholder{color:var(--muted);opacity:.7;letter-spacing:.05em;font-weight:500}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.hint{font-size:.9rem;color:var(--muted);margin:.5rem 0 .6rem}
+.err{color:var(--err);font-weight:600;min-height:1.5rem;margin:0 0 .5rem;font-size:.95rem}
+.go{width:100%;font:700 1.35rem var(--cond);letter-spacing:.02em;padding:.75rem;border:0;border-radius:.3rem;background:var(--blue);color:var(--on-blue);cursor:pointer}
+.go:hover{filter:brightness(1.1)}
+.out{margin-top:1rem;padding:.75rem 1rem;border-left:5px solid var(--ok);background:var(--bg);font-size:.95rem}
+.out p{margin:0 0 .35rem}
+.out a{color:var(--blue);font-weight:600}
+section{padding-top:3rem}
+h2{font:700 2rem/1.1 var(--cond);margin:0 0 .4rem}
+.sub{color:var(--muted);margin:0 0 1.2rem;max-width:36rem}
+.chart{margin:0}
+.chart div{display:grid;grid-template-columns:5.5rem 1fr;gap:1rem;padding:.75rem 0;border-top:1px solid var(--line)}
+.chart dt{font:700 1.5rem/1.2 var(--cond)}
+.chart dd{margin:0;color:var(--muted);max-width:40rem}
+.chart dd b{color:var(--ink);font-weight:600}
+.trio{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:2rem}
+.trio h3{font:700 1.4rem var(--cond);margin:0 0 .3rem}
+.trio p{margin:0;color:var(--muted)}
+footer{margin-top:3.5rem;border-top:1px solid var(--line);padding:1.5rem 0 2rem}
+.credit{font:700 1.6rem/1.2 var(--cond);margin:0 0 .4rem}
+.credit span{background:var(--sign);color:var(--sign-ink);padding:0 .4rem;border-radius:.15rem}
+.fine{font-size:.88rem;color:var(--muted);margin:0;max-width:44rem}
+
+.go:disabled{opacity:.6;cursor:wait}
+.out.bad{border-left-color:var(--err)}
+.out h3{font:700 1.2rem var(--cond);margin:.9rem 0 .3rem}
+.out dl{display:grid;grid-template-columns:max-content 1fr;gap:.3rem 1rem;margin:.5rem 0}
+.out dl>div{display:contents}
+.out dt{color:var(--muted)}
+.out dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.tw{overflow-x:auto}
+.out table{border-collapse:collapse;width:100%;font-size:.9rem}
+.out th,.out td{padding:.4rem .6rem;border-top:1px solid var(--line);text-align:left;white-space:nowrap}
+.out th{color:var(--muted);font-weight:600}
+.chip{padding:.05rem .5rem;border-radius:.25rem;font-weight:700;border:1.5px solid}
+.chip.ok{color:var(--ok)}.chip.mid{color:#d98200}.chip.bad{color:var(--err)}
+.out pre{overflow:auto;font-size:.8rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.out small{display:block;color:var(--muted);margin-top:.4rem}
+
+.tabs{overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;white-space:nowrap;padding:.9rem 1rem}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+input[type=search]{letter-spacing:.02em;font-size:1.5rem;-webkit-appearance:none;appearance:none}
+.setup{max-width:34rem;margin-top:2rem;padding:1.25rem;background:var(--panel);border:1px solid var(--line);border-radius:.5rem}
+.setup[hidden]{display:none}
+.setup input{font:500 .95rem/1.3 Barlow,system-ui,sans-serif;letter-spacing:0;padding:.5rem .6rem;margin:.25rem 0}
+.setup button{font:600 .9rem Barlow,system-ui,sans-serif;padding:.4rem .8rem;margin:.1rem .4rem .8rem 0;border:1.5px solid var(--ink);border-radius:.3rem;background:none;color:var(--ink);cursor:pointer}
+.setup small{display:block;color:var(--muted);overflow-wrap:anywhere}
+.setup pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="flag"></div>
+<div class="board">
+  <div class="wrap">
+    <div class="top"><span>RailCheck India</span><span class="only">Indian Railways only</span></div>
+    <h1>Check your PNR. Track your train.</h1>
+    <p class="lead">PNR status, live running status, schedules, fares and station boards for Indian Railways trains.</p>
+  </div>
+</div>
+<main class="wrap">
+  <div class="panel"><noscript><p style="padding:1.25rem;margin:0">This page needs JavaScript. Open it in Chrome or Firefox.</p></noscript>
+    <div class="tabs" role="tablist" aria-label="Choose a tool" id="tabs"></div><div id="forms"></div></div><div class="setup" id="setup" hidden></div>
+
+  <section>
+    <h2>What the status codes mean</h2>
+    <p class="sub">The codes on your ticket, in plain words. A smaller waitlist number means better odds.</p>
+    <dl class="chart">
+      <div><dt>CNF</dt><dd><b>Confirmed.</b> Coach and berth are allotted.</dd></div>
+      <div><dt>RAC</dt><dd><b>Reservation Against Cancellation.</b> You can board and share a berth, and may move to a full berth if others cancel.</dd></div>
+      <div><dt>GNWL</dt><dd><b>General Waiting List.</b> The most common waitlist, usually with the best odds of clearing.</dd></div>
+      <div><dt>RLWL</dt><dd><b>Remote Location Waiting List.</b> For journeys starting or ending at an intermediate station on the route.</dd></div>
+      <div><dt>PQWL</dt><dd><b>Pooled Quota Waiting List.</b> A shared pool for shorter trips between intermediate stations; odds are usually lower.</dd></div>
+      <div><dt>TQWL</dt><dd><b>Tatkal Waiting List.</b> A waitlist under the Tatkal quota, formerly shown as CKWL.</dd></div>
+    </dl>
+  </section>
+
+  <section>
+    <div class="trio">
+      <div><h3>Live data</h3><p>Status comes from a railway data API and can lag the official site, so double-check before you travel.</p></div>
+      <div><h3>Kept private</h3><p>Your number goes straight from your browser to the railway data API. This site doesn't store it.</p></div>
+      <div><h3>Made for India</h3><p>Built around Indian Railways' 10-digit PNRs and 5-digit train numbers.</p></div>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+    <p class="credit">Designed and built by <span>Rajdeep</span></p>
+    <p class="fine">RailCheck India is an independent project and is not affiliated with Indian Railways, IRCTC or CRIS. For help on the move, call the railway helpline on 139.</p><p class="fine"><a href="#setup" style="color:inherit">API setup</a> (for the site owner)</p>
+  </div>
+</footer>
+<script>/* ===== SETTINGS (edit here) ===== */
+const RAPID_KEY="a1ad64a770mshb02ed187962d454p1aa9fcjsnfbe1582b2f26";
+const RAPID_HOST="irctc-indian-railway-pnr-status.p.rapidapi.com";
+/* One entry per tool. "path" is the endpoint path; {pnr} {train} {from} {to} {code} {q} are replaced by what the visitor types.
+   These paths are unverified guesses. Use the "API setup" link in the footer to paste each endpoint's cURL from RapidAPI. */
+const I={
+ pnr:{label:"PNR number",ph:"10-digit PNR",len:10,num:1,re:/^\d{10}$/},
+ train:{label:"Train number",ph:"e.g. 12951",len:5,num:1,re:/^\d{5}$/},
+ code:{label:"Station code",ph:"e.g. NDLS",len:5,re:/^[A-Z]{2,5}$/},
+ from:{label:"From station code",ph:"e.g. NDLS",len:5,re:/^[A-Z]{2,5}$/},
+ to:{label:"To station code",ph:"e.g. MMCT",len:5,re:/^[A-Z]{2,5}$/},
+ q:{label:"Train or station",ph:"e.g. rajdhani or kota",len:30,re:/^.{2,30}$/}};
+const FN=[
+ {id:"pnr",tab:"PNR status",go:"Check PNR status",in:["pnr"],hint:"Printed on your ticket and in your booking SMS.",path:"/getPNRStatus/{pnr}",ex:{pnr:"8148735219"}},
+ {id:"live",tab:"Running status",go:"Check running status",in:["train"],hint:"The 5-digit number printed on your ticket.",path:"/live/{train}",ex:{train:"12951"}},
+ {id:"sched",tab:"Schedule",go:"Show schedule",in:["train"],hint:"Stops, timings and route of a train.",path:"/schedule/{train}",ex:{train:"12951"}},
+ {id:"coach",tab:"Coach position",go:"Show coach position",in:["train"],hint:"Where each coach stops along the platform.",path:"/coach/{train}",ex:{train:"12951"}},
+ {id:"cls",tab:"Classes and pantry",go:"Show classes",in:["train"],hint:"Seat classes and pantry car availability.",path:"/classes/{train}",ex:{train:"12951"}},
+ {id:"fare",tab:"Fare",go:"Get fare",in:["train","from","to"],hint:"Fare between two stations on a train's route.",path:"/fare?train={train}&from={from}&to={to}",ex:{train:"12951",from:"NDLS",to:"MMCT"}},
+ {id:"btw",tab:"Trains between",go:"Find trains",in:["from","to"],hint:"Every train running between two stations.",path:"/trains?from={from}&to={to}",ex:{from:"NDLS",to:"MMCT"}},
+ {id:"board",tab:"Station board",go:"Show station board",in:["code"],hint:"Live arrivals and departures at a station.",path:"/station/{code}/live",ex:{code:"NDLS"}},
+ {id:"stn",tab:"Station details",go:"Show station details",in:["code"],hint:"Name, zone and details for a station code.",path:"/station/{code}",ex:{code:"NDLS"}},
+ {id:"find",tab:"Search",go:"Search",in:["q"],hint:"Find a train or station by name, number or code.",path:"/autocomplete?q={q}",ex:{q:"rajdhani"}}];
+/* ================================= */
+const NTES="https://enquiry.indianrail.gov.in/mntes/",IRCTC="https://www.irctc.co.in/nget/train-search";
+const OFF={pnr:"https://www.indianrail.gov.in/enquiry/PNR/PnrEnquiry.html?locale=en",fare:IRCTC,btw:IRCTC,cls:IRCTC};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const lab=k=>esc(String(k).replace(/([a-z])([A-Z])/g,"$1 $2").replace(/[_-]+/g," ").replace(/^./,c=>c.toUpperCase()));
+const chip=v=>{const s=String(v).toUpperCase(),c=/^(CNF|CONFIRM)/.test(s)?"ok":/^RAC/.test(s)?"mid":/^(GNWL|RLWL|PQWL|RSWL|TQWL|CKWL|RLGN|RQWL|WL)/.test(s)?"bad":"";return c?'<span class="chip '+c+'">'+esc(v)+"</span>":esc(v)};
+const row=(k,v)=>"<div><dt>"+k+"</dt><dd>"+chip(v)+"</dd></div>";
+const objs=a=>a.filter(x=>x&&typeof x==="object");
+const tbl=(k,rs)=>{const cols=[...new Set(rs.flatMap(x=>Object.keys(x)))];return(k?"<h3>"+lab(k)+"</h3>":"")+'<div class="tw"><table><tr>'+cols.map(c=>"<th>"+lab(c)+"</th>").join("")+"</tr>"+rs.map(x=>"<tr>"+cols.map(c=>"<td>"+(x[c]==null||typeof x[c]==="object"?"":chip(x[c]))+"</td>").join("")+"</tr>").join("")+"</table></div>"};
+function view(j){
+  const d=j&&typeof j.data==="object"&&j.data?j.data:j;let kv="",tb="";
+  if(Array.isArray(d)){if(objs(d).length)tb=tbl("",objs(d))}
+  else if(d&&typeof d==="object"){const walk=o=>{for(const[k,v]of Object.entries(o)){
+    if(v==null||v==="")continue;
+    if(Array.isArray(v)){const rs=objs(v);if(rs.length)tb+=tbl(k,rs);else if(v.length)kv+=row(lab(k),v.join(", "))}
+    else if(typeof v==="object")walk(v);else kv+=row(lab(k),v)}};walk(d)}
+  return(kv?"<dl>"+kv+"</dl>":"")+tb+"<details><summary>Raw response</summary><pre>"+esc(JSON.stringify(j,null,2))+"</pre></details>"}
+let PATHS=(()=>{try{return JSON.parse(localStorage.getItem("rc_paths")||"{}")}catch(_){return{}}})();
+const keep=()=>{try{localStorage.setItem("rc_paths",JSON.stringify(PATHS))}catch(_){}};
+const good=x=>x.s>=200&&x.s<300&&x.j&&x.j.success!==false&&!x.j.error;
+const fill=(t,v)=>t.replace(/\{(\w+)\}/g,(_,k)=>encodeURIComponent(v[k]));
+const cache=new Map();
+async function call(f,v){
+  const url="https://"+RAPID_HOST+fill(PATHS[f.id]||f.path,v),c=cache.get(url);
+  if(c&&Date.now()-c.t<12e4)return c.x;
+  let r,j=null;
+  try{r=await fetch(url,{headers:{"x-rapidapi-key":RAPID_KEY,"x-rapidapi-host":RAPID_HOST},signal:AbortSignal.timeout(15000)})}
+  catch(e){return{s:0,j:{error:"network_or_cors",message:"Couldn't connect to the API. Check your internet, and open this page in Chrome or Firefox rather than an in-app preview."}}}
+  try{j=await r.json()}catch(_){}
+  const m=(j&&j.message)||"",x={s:r.status,j};
+  if(r.status===401||r.status===403)x.j={error:"key_rejected",message:"The API rejected the key. Check the key and your RapidAPI subscription."};
+  else if(r.status===429)x.j={error:"limit",message:"The API limit has been reached for now. Please try again later."};
+  else if(r.status===404&&(!j||/does not exist/i.test(m)))x.j={error:"endpoint_not_set",message:"This tool isn't connected to the API yet. Use the API setup link at the bottom of the page to connect it."};
+  if(good(x))cache.set(url,{t:Date.now(),x});
+  return x}
+const tabs=$("#tabs"),forms=$("#forms");
+const fld=(f,k)=>{const i=I[k];return'<div><label for="'+f.id+'-'+k+'">'+i.label+'</label><input id="'+f.id+'-'+k+'" data-k="'+k+'" '+(i.num?'inputmode="numeric"':'type="search" autocapitalize="'+(k==="q"?"none":"characters")+'"')+' autocomplete="off" maxlength="'+i.len+'" placeholder="'+i.ph+'"></div>'};
+FN.forEach((f,n)=>{
+  tabs.insertAdjacentHTML("beforeend",'<button role="tab" id="t-'+f.id+'" data-t="'+f.id+'" aria-selected="'+(n===0)+'" tabindex="'+(n?-1:0)+'" aria-controls="p-'+f.id+'">'+f.tab+"</button>");
+  const two=f.in.length>1;
+  forms.insertAdjacentHTML("beforeend",'<form id="p-'+f.id+'" role="tabpanel" aria-labelledby="t-'+f.id+'" novalidate'+(n?" hidden":"")+">"+(two?'<div class="f2">':"")+f.in.map(k=>fld(f,k)).join("")+(two?"</div>":"")+'<p class="hint">'+f.hint+'</p><p class="err" role="alert"></p><button class="go">'+f.go+'</button><div class="out" hidden></div></form>')});
+function show(id){tabs.querySelectorAll("button").forEach(t=>{const on=t.dataset.t===id;t.setAttribute("aria-selected",on);t.tabIndex=on?0:-1;if(on)t.scrollIntoView({inline:"center",block:"nearest"});document.getElementById("p-"+t.dataset.t).hidden=!on})}
+tabs.onclick=e=>{const t=e.target.closest("button");if(t)show(t.dataset.t)};
+tabs.onkeydown=e=>{const b=[...tabs.querySelectorAll("button")],i=b.indexOf(document.activeElement);if(i<0||!/Arrow(Left|Right)/.test(e.key))return;const o=b[(i+(e.key==="ArrowRight"?1:b.length-1))%b.length];o.focus();show(o.dataset.t)};
+forms.addEventListener("input",e=>{const i=e.target,k=i.dataset&&i.dataset.k;if(!k)return;i.value=I[k].num?i.value.replace(/\D/g,""):k==="q"?i.value:i.value.replace(/[^A-Za-z]/g,"").toUpperCase();i.form.querySelector(".err").textContent="";i.form.querySelector(".out").hidden=true});
+const put=(o,x,bad)=>{o.className="out"+(bad?" bad":"");o.innerHTML=x;o.hidden=false;o.scrollIntoView({behavior:"smooth",block:"center"})};
+forms.addEventListener("submit",async e=>{
+  e.preventDefault();const form=e.target,f=FN.find(x=>"p-"+x.id===form.id),v={},er=form.querySelector(".err");
+  for(const k of f.in){const i=form.querySelector('[data-k="'+k+'"]');v[k]=i.value.trim();if(!I[k].re.test(v[k])){er.textContent="Please check the "+I[k].label.toLowerCase()+".";i.focus();return}}
+  form.querySelectorAll("input").forEach(i=>i.blur());
+  const b=form.querySelector(".go"),o=form.querySelector(".out"),t0=b.textContent;
+  b.disabled=true;b.textContent="Checking\u2026";put(o,"<p>Checking\u2026</p>");
+  try{
+    const x=await call(f,v),a='<p><a href="'+(OFF[f.id]||NTES)+'" target="_blank" rel="noopener noreferrer">Verify on the official site</a></p>';
+    if(good(x))put(o,view(x.j)+a);
+    else put(o,"<p>"+esc((x.j&&x.j.message)||"Couldn't fetch this right now. Please try again shortly.")+"</p>"+a+(x.j&&x.j.error?"<small>Code: "+esc(x.j.error)+"</small>":""),1)
+  }catch(_){put(o,"<p>Something went wrong. Please try again.</p>",1)}
+  b.disabled=false;b.textContent=t0});
+const dec=s=>{try{return decodeURIComponent(s)}catch(_){return s}};
+function tpl(f,raw){
+  const m=raw.match(/https?:\/\/[^\s'"\\]+/);
+  if(!m){const p=raw.trim();return p[0]==="/"?p:null}
+  let u;try{u=new URL(m[0])}catch(_){return null}
+  const has=k=>f.in.includes(k);let n=0;
+  const sub=(val,key)=>{
+    key=key||"";
+    if(has("pnr")&&/^\d{10}$/.test(val))return"{pnr}";
+    if(has("train")&&/^\d{5}$/.test(val))return"{train}";
+    if(/^[A-Z]{2,5}$/.test(val)){
+      if(has("code"))return"{code}";
+      if(has("from"))return"{"+(/from|src|source|org|start/i.test(key)?"from":/to|dest|end|arriv/i.test(key)?"to":(n++?"to":"from"))+"}"}
+    if(has("q")&&/^(q|query|search|text|keyword|term)$/i.test(key))return"{q}";
+    return null};
+  const path=u.pathname.split("/").map(s=>sub(dec(s))||s).join("/");
+  const qs=[...u.searchParams].map(([k,v])=>k+"="+(sub(v,k)||encodeURIComponent(v))).join("&");
+  return path+(qs?"?"+qs:"")}
+function setup(){
+  const s=$("#setup");s.hidden=location.hash!=="#setup";if(s.hidden)return;
+  if(!s.dataset.ok){s.dataset.ok="1";
+  s.innerHTML='<h2>Connect the API</h2><p class="sub">For each tool, open its endpoint on RapidAPI, copy the cURL from Code Snippets and paste it here (or type a path such as /station/{code}). Each test uses one API request and the result is saved in this browser.</p>'+FN.map(f=>'<div data-f="'+f.id+'"><b>'+f.tab+'</b><input aria-label="'+f.tab+' endpoint" placeholder="'+esc(PATHS[f.id]||f.path)+'"><button>Test and save</button><small></small></div>').join("")+'<button id="cp">Show saved paths</button><pre id="cpo"></pre>';
+  s.onclick=async e=>{
+    if(e.target.id==="cp"){const t=JSON.stringify(PATHS,null,1);$("#cpo").textContent=t;try{await navigator.clipboard.writeText(t)}catch(_){}return}
+    const d=e.target.closest("[data-f]");if(!d||e.target.tagName!=="BUTTON")return;
+    const f=FN.find(x=>x.id===d.dataset.f),sm=d.querySelector("small"),p=tpl(f,d.querySelector("input").value||PATHS[f.id]||f.path);
+    if(!p){sm.textContent="Couldn't read that. Paste the cURL or type a path starting with /";return}
+    const prev=PATHS[f.id];PATHS[f.id]=p;keep();cache.clear();sm.textContent="Testing "+p+"\u2026";
+    const x=await call(f,f.ex),ok=good(x);
+    if(!ok){if(prev)PATHS[f.id]=prev;else delete PATHS[f.id];keep()}
+    sm.textContent=(ok?"Works and saved: ":"Failed ("+x.s+(x.j&&x.j.message?", "+x.j.message:"")+"): ")+p}}
+  s.scrollIntoView()}
+addEventListener("hashchange",setup);setup();
+</script>
+</body>
+</html>
